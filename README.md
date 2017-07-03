@@ -16,3 +16,11 @@ go build
 
 ## Usage
 Running the `ztid` will generate `identity.public` and `identity.secret` files in the `-out` directory (default to '.')
+
+## License
+The C++ code is copied from [ZeroTierOne](https://github.com/zerotier/ZeroTierOne) which is licensed under GNU GPL v3
+
+### ZeroTierOne License
+The ZeroTier source code is open source and is licensed under the GNU GPL v3 (not LGPL).
+If you'd like to embed it in a closed-source commercial product or appliance,
+please e-mail contact@zerotier.com to discuss commercial licensing. Otherwise it can be used for free.
