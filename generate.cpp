@@ -6,13 +6,13 @@ using namespace ZeroTier;
 //g++ --shared -fPIC -o libgenerate.so generate.cpp Identity.cpp SHA512.cpp Salsa20.cpp Utils.cpp C25519.cp
 
 extern "C" {
-    void generate(char **v) {
+    void generate(unsigned char *seed, char **out) {
         Identity* id = new Identity();
-        id->generate();
+        id->generate(seed);
         string str = id->toString(true);
 
-        *v = new char[str.length() + 1];
-        strcpy(*v, str.c_str());
+        *out = new char[str.length() + 1];
+        strcpy(*out, str.c_str());
         return;
     }
 }

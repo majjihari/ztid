@@ -99,6 +99,22 @@ public:
 		return kp;
 	}
 
+	template<typename F>
+    	static inline Pair generateSatisfying(unsigned char *seed, F cond)
+    		throw()
+    	{
+    		Pair kp;
+			strcpy((char *) kp.priv.data, (char *) seed);
+    		void *const priv = (void *)kp.priv.data;
+    		_calcPubED(kp); // do Ed25519 key -- bytes 32-63 of pub and priv
+    		do {
+    			++(((uint64_t *)priv)[1]);
+    			--(((uint64_t *)priv)[2]);
+    			_calcPubDH(kp); // keep regenerating bytes 0-31 until satisfied
+    		} while (!cond(kp));
+    		return kp;
+    	}
+
 	/**
 	 * Perform C25519 ECC key agreement
 	 *

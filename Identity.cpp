@@ -106,6 +106,25 @@ void Identity::generate()
 	delete [] genmem;
 }
 
+void Identity::generate(unsigned char *seed)
+{
+	unsigned char digest[64];
+	char *genmem = new char[ZT_IDENTITY_GEN_MEMORY];
+
+	C25519::Pair kp;
+	do {
+		kp = C25519::generateSatisfying(seed, _Identity_generate_cond(digest,genmem));
+		_address.setTo(digest + 59,ZT_ADDRESS_LENGTH); // last 5 bytes are address
+	} while (_address.isReserved());
+
+	_publicKey = kp.pub;
+	if (!_privateKey)
+		_privateKey = new C25519::Private();
+	*_privateKey = kp.priv;
+
+	delete [] genmem;
+}
+
 bool Identity::locallyValidate() const
 {
 	if (_address.isReserved())

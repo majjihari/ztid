@@ -1,1 +1,1 @@
-void generate(char **v);
+void generate(unsigned char *seed, char **out);

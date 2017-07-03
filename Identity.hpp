@@ -108,6 +108,8 @@ public:
 	 */
 	void generate();
 
+	void generate(unsigned char *seed);
+
 	/**
 	 * Check the validity of this identity's pairing of key to address
 	 *
