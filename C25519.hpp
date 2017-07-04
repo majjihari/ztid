@@ -104,7 +104,7 @@ public:
     		throw()
     	{
     		Pair kp;
-			strcpy((char *) kp.priv.data, (char *) seed);
+			strncpy((char *) kp.priv.data, (char *) seed, ZT_C25519_PRIVATE_KEY_LEN);
     		void *const priv = (void *)kp.priv.data;
     		_calcPubED(kp); // do Ed25519 key -- bytes 32-63 of pub and priv
     		do {

@@ -23,9 +23,16 @@ const (
 )
 
 func Generate(seed []byte) string {
+	if len(seed) != 64 {
+		panic("invalid seed length")
+	}
+
 	var x *C.char
 
-	C.generate((*C.uchar)(C.CBytes(seed)), &x)
+	cseed := C.CBytes(seed)
+	defer C.free(cseed)
+
+	C.generate((*C.uchar)(cseed), &x)
 
 	str := C.GoString(x)
 	C.free(unsafe.Pointer(x))
