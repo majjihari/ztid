@@ -180,12 +180,7 @@ int main(int argc, char *argv[]) {
     char *pubident, *needle, *buffer;
     char *output, filename[PATH_MAX];
 
-    if(argc < 2) {
-        fprintf(stderr, "Usage: %s output-directory\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
-
-    output = argv[1];
+    output = (argc < 2) ? (char *) "./" : argv[1];
     printf("[+] output directory: %s\n", output);
 
     // get seed for this computer
