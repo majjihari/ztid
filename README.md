@@ -11,11 +11,12 @@ It uses the following information to seed the identity generation:
 
 ## Building
 ```bash
-go build
+cd src
+make
 ```
 
 ## Usage
-Running the `ztid` will generate `identity.public` and `identity.secret` files in the `-out` directory (default to '.')
+Running the `ztid` will generate `identity.public` and `identity.secret` files in the directory privided as first argument (default to '.')
 
 ## License
 The C++ code is copied from [ZeroTierOne](https://github.com/zerotier/ZeroTierOne) which is licensed under GNU GPL v3
