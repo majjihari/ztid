@@ -5,7 +5,7 @@ for zero-os
 It uses the following information to seed the identity generation:
 - Constant Seed
 - Motherboard ID (if available)
-- All the mac addresses of the *physical* attached devices
+- All the mac addresses of the *physical* attached devices, sorted
 
 > This means that a change in HW will generate a new ID
 

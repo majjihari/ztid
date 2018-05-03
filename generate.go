@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"unsafe"
 )
@@ -54,13 +55,25 @@ func GetMachineIdentity() (public, secret string) {
 		sh.Write(bytes.TrimSpace(data))
 	}
 
+	devices := []string{}
+
 	//all physical devices.
 	for _, link := range links {
 		if link.Type() != "device" {
 			continue
 		}
 
-		io.WriteString(sh, link.Attrs().HardwareAddr.String())
+		devices = append(devices, link.Attrs().HardwareAddr.String())
+
+	}
+
+	// don't rely on the order of nics
+	// we sort the list to ensure it's the same
+	// whatever the kernel does
+	sort.Strings(devices)
+
+	for _, dev := range devices {
+		io.WriteString(sh, dev)
 	}
 
 	secret = Generate(sh.Sum(nil))
