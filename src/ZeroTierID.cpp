@@ -10,6 +10,12 @@
 #include <fcntl.h>
 #include "generate.hpp"
 
+typedef struct macaddr_t {
+    size_t length;
+    char **addrs;
+
+} macaddr_t;
+
 // fixed seed
 static const char *seed = "2f727c7f12896af73cc89c48ca0a00d3"
                           "66b728eb42ae8bcdd293538fddfdc05b"
@@ -84,8 +90,8 @@ int dir_create(char *path) {
 }
 
 // read macaddress from interface
-// update provided hash context with the macaddress
-int hash_update_interface(SHA512_CTX *ctx, char *interface) {
+// add interface to macaddress list
+int network_append_interface(macaddr_t *maclist, char *interface) {
     char filename[PATH_MAX];
     char *buffer;
 
@@ -96,22 +102,34 @@ int hash_update_interface(SHA512_CTX *ctx, char *interface) {
 
     printf("[+] adding macaddress: %s\n", buffer);
 
-    SHA512_Update(ctx, buffer, strlen(buffer));
-    free(buffer);
+    maclist->length += 1;
+    maclist->addrs = (char **) realloc(maclist->addrs, (maclist->length * sizeof(char *)));
+    maclist->addrs[maclist->length - 1] = buffer;
 
     return 0;
 }
 
+int addr_cmp(const void *a, const void *b) {
+    const char **ia = (const char **) a;
+    const char **ib = (const char **) b;
+    return strcmp(*ia, *ib);
+}
+
 // walk over all the network interface
 // only keep physical connected interface
-// update hash using macaddress
+// update hash using ordered macaddress
 int hash_system_mac_address(SHA512_CTX *ctx) {
     struct ifaddrs *addrs, *tmp;
     char devlink[PATH_MAX], temp[8];
-    int count = 0;
+
+    macaddr_t maclist = {
+        .length = 0,
+        .addrs = NULL
+    };
 
     getifaddrs(&addrs);
 
+    // looking for eligible interface
     for(tmp = addrs; tmp; tmp = tmp->ifa_next) {
         if(!tmp->ifa_addr || tmp->ifa_addr->sa_family != AF_PACKET)
             continue;
@@ -124,14 +142,30 @@ int hash_system_mac_address(SHA512_CTX *ctx) {
             continue;
 
         printf("[+] eligible interface: %s\n", tmp->ifa_name);
-        hash_update_interface(ctx, tmp->ifa_name);
-
-        count += 1;
+        // network_append_interface(ctx, tmp->ifa_name);
+        network_append_interface(&maclist, tmp->ifa_name);
     }
 
     freeifaddrs(addrs);
 
-    return count;
+    // ordering interface by macaddress
+    qsort(maclist.addrs, maclist.length, sizeof(char *), addr_cmp);
+
+    // adding interfaces to hash
+    for(size_t i = 0; i < maclist.length; i++) {
+        printf("[+] inserting: %s\n", maclist.addrs[i]);
+
+        size_t length = strlen(maclist.addrs[i]);
+        SHA512_Update(ctx, maclist.addrs[i], length);
+    }
+
+    // cleaning stuff
+    for(size_t i = 0; i < maclist.length; i++)
+        free(maclist.addrs[i]);
+
+    free(maclist.addrs);
+
+    return maclist.length;
 }
 
 int hash_system_boardid(SHA512_CTX *ctx) {
