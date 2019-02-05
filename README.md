@@ -24,3 +24,6 @@ The C++ code is copied from [ZeroTierOne](https://github.com/zerotier/ZeroTierOn
 The ZeroTier source code is open source and is licensed under the GNU GPL v3 (not LGPL).
 If you'd like to embed it in a closed-source commercial product or appliance,
 please e-mail contact@zerotier.com to discuss commercial licensing. Otherwise it can be used for free.
+
+# Owner
+[muhamadazmy](https://github.com/muhamadazmy)
