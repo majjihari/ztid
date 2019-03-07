@@ -8,8 +8,6 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"flag"
-	"fmt"
-	"github.com/vishvananda/netlink"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,6 +15,9 @@ import (
 	"sort"
 	"strings"
 	"unsafe"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 )
 
 const (
@@ -32,7 +33,7 @@ func Generate(seed []byte) string {
 
 	cseed := C.CBytes(seed)
 	defer C.free(cseed)
-
+	log.Debug("calling the underlaying C generate function")
 	C.generate((*C.uchar)(cseed), &x)
 
 	str := C.GoString(x)
@@ -42,17 +43,25 @@ func Generate(seed []byte) string {
 }
 
 func GetMachineIdentity() (public, secret string) {
+	log.Debug("calculating machine identity")
 	links, err := netlink.LinkList()
 	if err != nil {
 		panic(err)
 	}
 
+	log.WithFields(log.Fields{
+		"count": len(links),
+	}).Debug("nics found")
+
 	sh := sha512.New()
 	io.WriteString(sh, Seed)
 
 	//add motheroard ID if available
+	log.Debugf("reading motherboard id")
 	if data, err := ioutil.ReadFile("/sys/devices/virtual/dmi/id/board_serial"); err == nil {
 		sh.Write(bytes.TrimSpace(data))
+	} else {
+		log.WithError(err).Debug("could not read motherboard id, skipping ...")
 	}
 
 	devices := []string{}
@@ -62,9 +71,17 @@ func GetMachineIdentity() (public, secret string) {
 		if link.Type() != "device" {
 			continue
 		}
+		attrs := link.Attrs()
+		if attrs.Name == "lo" {
+			continue
+		}
 
-		devices = append(devices, link.Attrs().HardwareAddr.String())
+		log.WithFields(log.Fields{
+			"nic": attrs.Name,
+			"mac": attrs.HardwareAddr.String(),
+		}).Debug("adding device to list of identity devices")
 
+		devices = append(devices, attrs.HardwareAddr.String())
 	}
 
 	// don't rely on the order of nics
@@ -72,10 +89,16 @@ func GetMachineIdentity() (public, secret string) {
 	// whatever the kernel does
 	sort.Strings(devices)
 
+	log.WithFields(log.Fields{
+		"macs":  devices,
+		"count": len(devices),
+	}).Debug("macs used in identity generation (sorted)")
+
 	for _, dev := range devices {
 		io.WriteString(sh, dev)
 	}
 
+	log.Info("generating identity ...")
 	secret = Generate(sh.Sum(nil))
 	parts := strings.Split(
 		secret,
@@ -90,7 +113,9 @@ func GetMachineIdentity() (public, secret string) {
 
 func main() {
 	var output string
+	var debug bool
 	flag.StringVar(&output, "out", ".", "Output directory where to write the identity files")
+	flag.BoolVar(&debug, "debug", false, "enable debug output")
 	flag.Parse()
 
 	if output == "" {
@@ -98,10 +123,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	if debug {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	public, secret := GetMachineIdentity()
 
 	if err := os.MkdirAll(output, 0755); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create directory: %s", output)
+		log.WithError(err).Fatalf("failed to create directory: %s", output)
 	}
 
 	if err := ioutil.WriteFile(
@@ -109,8 +138,7 @@ func main() {
 		[]byte(public),
 		0644,
 	); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to write public identity file: %s", err)
-		os.Exit(1)
+		log.WithError(err).Fatalf("failed to write public identity file: %s", err)
 	}
 
 	if err := ioutil.WriteFile(
@@ -118,7 +146,7 @@ func main() {
 		[]byte(secret),
 		0600,
 	); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to write secret identity file: %s", err)
+		log.WithError(err).Fatalf("failed to write secret identity file: %s", err)
 		os.Exit(1)
 	}
 
